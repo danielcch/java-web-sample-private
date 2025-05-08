@@ -11,23 +11,21 @@ public class HelloController {
     public String form() {
         return "<html>\n" +
                "    <body>\n" +
-               "        <h1>Web de Sumas</h1>\n" +
-               "        <form action=\"/sum\" method=\"get\">\n" +
-               "            <label for=\"num1\">Número 1:</label>\n" +
-               "            <input type=\"number\" id=\"num1\" name=\"num1\" required>\n" +
+               "        <h1>Conversor de Dólares a Euros</h1>\n" +
+               "        <form action=\"/convert\" method=\"get\">\n" +
+               "            <label for=\"amount\">Cantidad en dólares:</label>\n" +
+               "            <input type=\"number\" id=\"amount\" name=\"amount\" step=\"0.01\" required>\n" +
                "            <br>\n" +
-               "            <label for=\"num2\">Número 2:</label>\n" +
-               "            <input type=\"number\" id=\"num2\" name=\"num2\" required>\n" +
-               "            <br>\n" +
-               "            <button type=\"submit\">Sumar</button>\n" +
+               "            <button type=\"submit\">Convertir</button>\n" +
                "        </form>\n" +
                "    </body>\n" +
                "</html>";
     }
 
-    @GetMapping("/sum")
-    public String sum(@RequestParam int num1, @RequestParam int num2) {
-        int result = num1 + num2;
-        return "La suma de " + num1 + " y " + num2 + " es: " + result;
+    @GetMapping("/convert")
+    public String convert(@RequestParam double amount) {
+        double conversionRate = 0.85; // Ejemplo: 1 dólar = 0.85 euros
+        double result = amount * conversionRate;
+        return "La cantidad de " + amount + " dólares equivale a " + String.format("%.2f", result) + " euros.";
     }
 }

@@ -19,13 +19,47 @@ public class HelloControllerTest {
     public void testFormEndpoint() throws Exception {
         mockMvc.perform(get("/"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Web de Sumas")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Conversor de Dólares a Euros")));
     }
 
     @Test
-    public void testSumEndpoint() throws Exception {
-        mockMvc.perform(get("/sum").param("num1", "5").param("num2", "3"))
+    public void testConvertEndpoint() throws Exception {
+        mockMvc.perform(get("/convert").param("amount", "100"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("La suma de 5 y 3 es: 8"));
+                .andExpect(content().string("La cantidad de 100.0 dólares equivale a 85.00 euros."));
+    }
+
+    @Test
+    public void testConvertEndpointWithZero() throws Exception {
+        mockMvc.perform(get("/convert").param("amount", "0"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("La cantidad de 0.0 dólares equivale a 0.00 euros."));
+    }
+
+    @Test
+    public void testConvertEndpointWithInvalidParameter() throws Exception {
+        mockMvc.perform(get("/convert").param("amount", "abc"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void testConvertEndpointWithDecimalAmount() throws Exception {
+        mockMvc.perform(get("/convert").param("amount", "123.45"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("La cantidad de 123.45 dólares equivale a 104.93 euros."));
+    }
+
+    @Test
+    public void testConvertEndpointWithLargeAmount() throws Exception {
+        mockMvc.perform(get("/convert").param("amount", "1000000"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("La cantidad de 1000000.0 dólares equivale a 850000.00 euros."));
+    }
+
+    @Test
+    public void testConvertEndpointWithNegativeAmount() throws Exception {
+        mockMvc.perform(get("/convert").param("amount", "-50"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("La cantidad de -50.0 dólares equivale a -42.50 euros."));
     }
 }
