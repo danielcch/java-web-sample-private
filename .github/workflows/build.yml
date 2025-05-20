@@ -52,38 +52,7 @@ jobs:
 
     continue-on-error: true
 
-    # Comentar en el PR si fallan los tests
-    post:
-      - name: Comment on PR if tests failed
-        if: failure() && github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '❌ Los tests fallaron en la matriz de versiones de Java. Por favor revisa los logs del workflow.'
-            })
-
-    # Notificación a Slack/Teams si falla el job
-    steps:
-      - name: Notify Slack on failure
-        if: failure()
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
-          SLACK_TITLE: 'Test job failed'
-          SLACK_MESSAGE: 'El job de tests falló en la matriz de versiones de Java. Revisa el workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-      - name: Notify Teams on failure
-        if: failure()
-        uses: aliencube/microsoft-teams-notification@v1
-        with:
-          webhook-uri: ${{ secrets.TEAMS_WEBHOOK_URL }}
-          title: 'Test job failed'
-          summary: 'El job de tests falló en la matriz de versiones de Java.'
-          text: 'Revisa el workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-
+    
   build:
     runs-on: ubuntu-latest
     needs: test
