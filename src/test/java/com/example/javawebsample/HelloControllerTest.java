@@ -24,7 +24,7 @@ public class HelloControllerTest {
 
     @Test
     public void testConvertEndpoint() throws Exception {
-        mockMvc.perform(get("/convert").param("amount", "100"))
+        mockMvc.perform(get("/convert").param("amount", "a"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("La cantidad de 100.0 dólares equivale a 85.00 euros."));
     }
