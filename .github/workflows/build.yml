@@ -9,18 +9,80 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ 8, 11, 17 ]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ matrix.java }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-${{ runner.os }}-${{ matrix.java }}-
+
+      - name: Set up JDK ${{ matrix.java }}
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: ${{ matrix.java }}
+
+      - name: Check Dependencies
+        run: mvn -B dependency:analyze --file pom.xml
+
+      - name: Dependency Vulnerability Check
+        run: mvn -B org.owasp:dependency-check-maven:check --file pom.xml
 
       - name: Run Tests
+        id: run_tests
         run: mvn -B test --file pom.xml
+
+      - name: Custom commands on self-hosted
+        if: runner.self_hosted == true && env.CUSTOM_COMMANDS_ENABLED == 'true'
+        run: |
+          echo "Ejecutando comandos personalizados en runner self-hosted"
+          # Ejemplo: ejecutar solo si CUSTOM_VAR está definido
+          if [ ! -z "${CUSTOM_VAR}" ]; then
+            echo "CUSTOM_VAR está definido: ${CUSTOM_VAR}"
+            # Aquí puedes agregar tus comandos personalizados
+          fi
+
+    continue-on-error: true
+
+    # Comentar en el PR si fallan los tests
+    post:
+      - name: Comment on PR if tests failed
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Los tests fallaron en la matriz de versiones de Java. Por favor revisa los logs del workflow.'
+            })
+
+    # Notificación a Slack/Teams si falla el job
+    steps:
+      - name: Notify Slack on failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_TITLE: 'Test job failed'
+          SLACK_MESSAGE: 'El job de tests falló en la matriz de versiones de Java. Revisa el workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+      - name: Notify Teams on failure
+        if: failure()
+        uses: aliencube/microsoft-teams-notification@v1
+        with:
+          webhook-uri: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          title: 'Test job failed'
+          summary: 'El job de tests falló en la matriz de versiones de Java.'
+          text: 'Revisa el workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
 
   build:
     runs-on: ubuntu-latest
@@ -28,6 +90,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-17-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-${{ runner.os }}-17-
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -37,3 +107,19 @@ jobs:
 
       - name: Build with Maven
         run: mvn -B package --file pom.xml
+
+      - name: Notify Slack on failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_TITLE: 'Build job failed'
+          SLACK_MESSAGE: 'El job de build falló. Revisa el workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+      - name: Notify Teams on failure
+        if: failure()
+        uses: aliencube/microsoft-teams-notification@v1
+        with:
+          webhook-uri: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          title: 'Build job failed'
+          summary: 'El job de build falló.'
+          text: 'Revisa el workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
